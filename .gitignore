@@ -13,6 +13,7 @@ node_modules
 /.env
 /*.log
 /bitrix/*
+/local/modules/exam3111.ticket/*
 # включаем папку php_interface и исключаем файл dbconn.php
 !/bitrix/php_interface/
 /bitrix/php_interface/dbconn.php
