@@ -23,7 +23,8 @@ class SomeElementTable extends Entity\DataManager
 				->configureRequired()
 				->configureDefaultValue(new DateTime()),
 			(new Entity\StringField('TITLE'))
-				->configureRequired(),
+				->configureRequired()
+                ->configureSize(250),
 			new Entity\TextField('TEXT'),
 		);
 	}

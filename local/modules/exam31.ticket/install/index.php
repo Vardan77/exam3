@@ -11,6 +11,7 @@ use Bitrix\Main\UrlRewriter;
 use Bitrix\Main\SystemException;
 
 use Exam31\Ticket\SomeElementTable;
+use Exam31\Ticket\SomeElementInfoTable;
 
 Loc::loadMessages(__FILE__);
 
@@ -78,6 +79,7 @@ class exam31_ticket extends CModule
 				$this->InstallEvents();
 				$this->InstallFiles();
 				$this->InstallUrlRewriterRuls();
+				$this->addDummyData();
 			}
 		}
 		catch (Throwable $t)
@@ -116,18 +118,18 @@ class exam31_ticket extends CModule
 
 	public function InstallDB(): bool
 	{
-		if (!Loader::includeModule($this->MODULE_ID))
-		{
+		if (!Loader::includeModule($this->MODULE_ID)) {
 			return false;
 		}
 
 		$dbConnection = Application::getConnection();
-		$entity = SomeElementTable::getEntity();
-		$tableName = SomeElementTable::getTableName();
-		if (!$dbConnection->isTableExists($tableName))
-		{
-			$entity->createDbTable();
+		if (!$dbConnection->isTableExists(SomeElementTable::getTableName())) {
+            SomeElementTable::getEntity()->createDbTable();
 		}
+
+        if (!$dbConnection->isTableExists(SomeElementInfoTable::getTableName())) {
+            SomeElementInfoTable::getEntity()->createDbTable();
+        }
 
 		return true;
 	}
@@ -135,15 +137,18 @@ class exam31_ticket extends CModule
 
 	public function UnInstallDB(): bool
 	{
-		if (!Loader::includeModule($this->MODULE_ID))
-		{
+		if (!Loader::includeModule($this->MODULE_ID)) {
 			return false;
 		}
 
 		$dbConnection = Application::getConnection();
 		$tableName = SomeElementTable::getTableName();
-		if ($dbConnection->isTableExists($tableName))
-		{
+		if ($dbConnection->isTableExists($tableName)) {
+			$dbConnection->dropTable($tableName);
+		}
+
+		$tableName = SomeElementInfoTable::getTableName();
+		if ($dbConnection->isTableExists($tableName)) {
 			$dbConnection->dropTable($tableName);
 		}
 
@@ -226,5 +231,27 @@ class exam31_ticket extends CModule
 			]
 		);
 	}
+
+    public function addDummyData(): void
+    {
+        for ($i = 1; $i <= 100; $i++) {
+            SomeElementTable::add(
+                [
+                    'TITLE' => 'Название ' . $i,
+                    'TEXT' => 'Описание ' . $i,
+                    'ACTIVE' => true,
+                ]
+            );
+        }
+        for ($i = 1; $i <= 20; $i++) {
+            SomeElementInfoTable::add(
+                [
+                    'TITLE' => 'Название ' . $i,
+                    'TEXT' => 'Описание ' . $i,
+                    'ACTIVE' => true,
+                ]
+            );
+        }
+    }
 }
 
