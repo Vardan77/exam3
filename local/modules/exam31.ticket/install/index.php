@@ -10,8 +10,11 @@ use Bitrix\Main\EventManager;
 use Bitrix\Main\UrlRewriter;
 use Bitrix\Main\SystemException;
 
+use Exam31\Ticket\AdminLink;
+use Exam31\Ticket\ExamFieldType;
 use Exam31\Ticket\SomeElementTable;
 use Exam31\Ticket\SomeElementInfoTable;
+use Exam31\Ticket\ProtectedField;
 
 Loc::loadMessages(__FILE__);
 
@@ -77,6 +80,7 @@ class exam31_ticket extends CModule
 
 				$this->InstallDB();
 				$this->InstallEvents();
+				$this->InstallUserFields();
 				$this->InstallFiles();
 				$this->InstallUrlRewriterRuls();
 				$this->addDummyData();
@@ -100,6 +104,7 @@ class exam31_ticket extends CModule
 		{
 			$this->UnInstallUrlRewriterRuls();
 			$this->UnInstallFiles();
+			$this->UnInstallUserFields();
 			$this->UnInstallEvents();
 			$this->UnInstallDB();
 
@@ -163,7 +168,7 @@ class exam31_ticket extends CModule
 			'main',
 			'OnUserTypeBuildList',
 			$this->MODULE_ID,
-			'Exam31\\Ticket\\ExamFieldType',
+            ExamFieldType::class,
 			'getUserTypeDescription'
 		);
 
@@ -171,8 +176,16 @@ class exam31_ticket extends CModule
 			'main',
 			'OnEpilog',
 			$this->MODULE_ID,
-			'Exam31\\Ticket\\AdminLink',
+            AdminLink::class,
 			'onEpilog'
+		);
+
+		$eventManager->registerEventHandlerCompatible(
+			'crm',
+			'OnBeforeCrmDealUpdate',
+			$this->MODULE_ID,
+			ProtectedField::class,
+			'onBeforeCrmDealUpdate'
 		);
 	}
 
@@ -184,7 +197,7 @@ class exam31_ticket extends CModule
 			'main',
 			'OnUserTypeBuildList',
 			$this->MODULE_ID,
-			'Exam31\\Ticket\\ExamFieldType',
+			ExamFieldType::class,
 			'getUserTypeDescription'
 		);
 
@@ -192,9 +205,70 @@ class exam31_ticket extends CModule
 			'main',
 			'OnEpilog',
 			$this->MODULE_ID,
-			'Exam31\\Ticket\\AdminLink',
+			AdminLink::class,
 			'onEpilog'
 		);
+
+		$eventManager->unRegisterEventHandler(
+			'crm',
+			'OnBeforeCrmDealUpdate',
+			$this->MODULE_ID,
+            ProtectedField::class,
+			'onBeforeCrmDealUpdate'
+		);
+	}
+
+	public function InstallUserFields(): void
+	{
+		if (!Loader::includeModule($this->MODULE_ID)) {
+			return;
+		}
+
+		$field = CUserTypeEntity::GetList([], [
+			'ENTITY_ID' => ProtectedField::ENTITY_ID,
+			'FIELD_NAME' => ProtectedField::FIELD_NAME,
+		])->Fetch();
+		if ($field) {
+			return;
+		}
+
+		$title = ['ru' => Loc::getMessage('EXAM31_TICKET_PROTECTED_FIELD_TITLE')];
+		$userTypeEntity = new CUserTypeEntity();
+		$id = $userTypeEntity->Add([
+			'ENTITY_ID' => ProtectedField::ENTITY_ID,
+			'FIELD_NAME' => ProtectedField::FIELD_NAME,
+			'USER_TYPE_ID' => 'string',
+			'MULTIPLE' => 'N',
+			'MANDATORY' => 'N',
+			'SHOW_FILTER' => 'N',
+			'SHOW_IN_LIST' => 'Y',
+			'EDIT_IN_LIST' => 'Y',
+			'IS_SEARCHABLE' => 'N',
+			'EDIT_FORM_LABEL' => $title,
+			'LIST_COLUMN_LABEL' => $title,
+			'LIST_FILTER_LABEL' => $title,
+		]);
+
+		if (!$id) {
+			global $APPLICATION;
+			$exception = $APPLICATION->GetException();
+			throw new SystemException($exception ? $exception->GetString() : 'Can not create field ' . ProtectedField::FIELD_NAME);
+		}
+	}
+
+	public function UnInstallUserFields(): void
+	{
+		if (!Loader::includeModule($this->MODULE_ID)) {
+			return;
+		}
+
+		$field = CUserTypeEntity::GetList([], [
+			'ENTITY_ID' => ProtectedField::ENTITY_ID,
+			'FIELD_NAME' => ProtectedField::FIELD_NAME,
+		])->Fetch();
+		if ($field) {
+			(new CUserTypeEntity())->Delete($field['ID']);
+		}
 	}
 
 	public function InstallFiles(): void

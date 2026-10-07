@@ -1,6 +1,7 @@
 <?php
 namespace Exam31\Ticket;
 
+use Bitrix\Main\Engine\CurrentUser;
 use Bitrix\Main\Localization\Loc;
 use Bitrix\Main\Page\Asset;
 use Bitrix\Main\UI\Extension;
@@ -8,19 +9,16 @@ use Bitrix\Main\Web\Json;
 
 class AdminLink
 {
-	public const ADMIN_GROUP_ID = 1;
 	public const ADMIN_URL = '/bitrix/admin/';
     public const MENU_SELECTOR = '.menu-items-body';
 
     public static function onEpilog(): void
     {
-        global $USER;
-
         if (defined('ADMIN_SECTION') && ADMIN_SECTION === true) {
             return;
         }
 
-        if (!is_object($USER) || !in_array(self::ADMIN_GROUP_ID, array_map('intval', $USER->GetUserGroupArray()), true)) {
+        if (!CurrentUser::get()->isAdmin()) {
             return;
         }
 
