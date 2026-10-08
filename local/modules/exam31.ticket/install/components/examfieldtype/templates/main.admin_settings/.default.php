@@ -19,9 +19,21 @@ $additionalParameters = $arResult['additionalParameters'];
                 name="<?= $additionalParameters['NAME']; ?>[FORMAT]"
                 size="50"
                 maxlength="255"
-                value="<?= $arResult['VALUES']['FORMAT']; ?>"
+                value="<?= htmlspecialcharsbx($arResult['VALUES']['FORMAT']); ?>"
         />
     </td>
 </tr>
-
-
+<tr>
+    <td>
+        <span><?=GetMessage('EXAM31_TICKET_FIELDTYPE_UF_LINK_TEMPLATE')?></span>
+    </td>
+    <td>
+        <input
+                type="text"
+                name="<?= $additionalParameters['NAME']; ?>[LINK_TEMPLATE]"
+                size="50"
+                maxlength="255"
+                value="<?= htmlspecialcharsbx($arResult['VALUES']['LINK_TEMPLATE']); ?>"
+        />
+    </td>
+</tr>

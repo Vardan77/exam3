@@ -14,7 +14,7 @@ $attrList = [
 
 foreach($arResult['value'] as $key => $value)
 {
-	$attrList['value'] = (int) $value;
+	$attrList['value'] = (int) $value > 0 ? (int) $value : '';
 	$arResult['fieldValues'][$key] = [
 		'attrList' => $attrList,
 	];

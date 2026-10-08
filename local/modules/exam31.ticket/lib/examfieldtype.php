@@ -24,8 +24,12 @@ class ExamFieldType extends BaseType
 
 	public static function prepareSettings(array $userField): array
 	{
+		$format = trim((string) ($userField['SETTINGS']['FORMAT'] ?? ''));
+		$linkTemplate = trim((string) ($userField['SETTINGS']['LINK_TEMPLATE'] ?? ''));
+
 		return [
-			'FORMAT' => $userField['SETTINGS']['FORMAT'] ?: Loc::getMessage('EXAM31_TICKET_FIELDTYPE_UF_DEFAULT_TEMPLATE_VALUE'),
+			'FORMAT' => $format !== '' ? $format : Loc::getMessage('EXAM31_TICKET_FIELDTYPE_UF_DEFAULT_TEMPLATE_VALUE'),
+			'LINK_TEMPLATE' => $linkTemplate,
 		];
 	}
 }
