@@ -1,2 +1,3 @@
 <?php
 $MESS['EXAM_ELEMENTS_LIST_ELEMENT_NAME'] = 'Элемент';
+$MESS['EXAM_ELEMENTS_LIST_ADD_BUTTON'] = 'Добавить';

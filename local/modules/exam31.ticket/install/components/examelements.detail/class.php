@@ -16,7 +16,7 @@ class ExamElementsDetailComponent extends CBitrixComponent implements Controller
 {
 	use ErrorableImplementation;
 	private ?int $elementId = null;
-	
+
 	public function __construct($component = null)
 	{
 		parent::__construct($component);
@@ -51,6 +51,8 @@ class ExamElementsDetailComponent extends CBitrixComponent implements Controller
 
 	function executeComponent(): void
 	{
+		global $APPLICATION;
+
 		if ($this->hasErrors())
 		{
 			$this->displayErrors();
@@ -60,6 +62,13 @@ class ExamElementsDetailComponent extends CBitrixComponent implements Controller
 		//flat
 		$this->arResult['ELEMENT'] = $this->getEntityData();
 
+		if ($this->elementId && empty($this->arResult['ELEMENT']))
+		{
+			$APPLICATION->SetTitle(Loc::getMessage('EXAM31_ELEMENT_DETAIL_TITLE', ['#ID#' => $this->elementId]));
+			ShowError(Loc::getMessage('EXAM31_ELEMENT_DETAIL_NOT_FOUND'));
+			return;
+		}
+
 		//form
 		$this->arResult['form'] = $this->PrepareForm($this->arResult['ELEMENT']);
 		$this->arResult['LIST_PAGE_URL'] = $this->arParams['LIST_PAGE_URL'];
@@ -67,8 +76,14 @@ class ExamElementsDetailComponent extends CBitrixComponent implements Controller
 
 		$this->includeComponentTemplate();
 
-		global $APPLICATION;
-		$APPLICATION->SetTitle(Loc::getMessage('EXAM31_ELEMENT_DETAIL_TITLE', ['#ID#' => $this->arResult['ELEMENT']['ID']]));
+		$APPLICATION->SetTitle($this->getTitle());
+	}
+
+	protected function getTitle(): string
+	{
+		return $this->elementId
+			? Loc::getMessage('EXAM31_ELEMENT_DETAIL_TITLE', ['#ID#' => $this->elementId])
+			: Loc::getMessage('EXAM31_ELEMENT_DETAIL_TITLE_NEW');
 	}
 
 	protected function PrepareForm($element): array
@@ -98,7 +113,6 @@ class ExamElementsDetailComponent extends CBitrixComponent implements Controller
 	}
 	protected function getEntityConfig(): array
 	{
-		//Демо-данные - конфигурация формы
 		return [
 			[
 				'type' => 'column',
@@ -106,12 +120,12 @@ class ExamElementsDetailComponent extends CBitrixComponent implements Controller
 				'elements' => [
 					[
 						'name' => 'main',
-						'title' => $this->elementId ? Loc::getMessage('EXAM31_ELEMENT_DETAIL_TITLE', ['#ID#' => $this->elementId]) : Loc::getMessage('EXAM31_ELEMENT_DETAIL_TITLE_NEW'),
+						'title' => $this->getTitle(),
 
 						'type' => 'section',
 						'elements' => [
 							['name' => 'ID'],
-							['name' => 'DATE_MODIFY'],							
+							['name' => 'DATE_MODIFY'],
 							['name' => 'ACTIVE'],
 							['name' => 'TITLE'],
 							['name' => 'TEXT'],
@@ -126,7 +140,6 @@ class ExamElementsDetailComponent extends CBitrixComponent implements Controller
 	{
 		$fieldsLabel = SomeElementTable::getFieldsDisplayLabel();
 
-		//Демо-данные - поля формы
 		return [
 			[
 				'name' => 'ID',
@@ -139,7 +152,7 @@ class ExamElementsDetailComponent extends CBitrixComponent implements Controller
 				'title' => $fieldsLabel['DATE_MODIFY'] ?? 'DATE_MODIFY',
 				'editable' => false,
 				'type' => 'datetime',
-			],			
+			],
 			[
 				'name' => 'ACTIVE',
 				'title' => $fieldsLabel['ACTIVE'] ?? 'ACTIVE',
@@ -150,6 +163,7 @@ class ExamElementsDetailComponent extends CBitrixComponent implements Controller
 				'name' => 'TITLE',
 				'title' => $fieldsLabel['TITLE'] ?? 'TITLE',
 				'editable' => true,
+				'required' => true,
 				'type' => 'text',
 			],
 			[
@@ -165,43 +179,88 @@ class ExamElementsDetailComponent extends CBitrixComponent implements Controller
 	{
 		if (!$this->elementId)
 		{
+			//Новый элемент по умолчанию активен
+			return ['ACTIVE' => 'Y'];
+		}
+
+		$element = SomeElementTable::getRow([
+			'select' => ['ID', 'DATE_MODIFY', 'ACTIVE', 'TITLE', 'TEXT'],
+			'filter' => ['=ID' => $this->elementId],
+		]);
+		if (!$element)
+		{
 			return [];
 		}
 
-		//Демо-данные полей для формы
-		$element = [
-			'ID' => 2,
-			'DATE_MODIFY' => (new DateTime())->toString(),
-			'TITLE' => 'TITLE 2',
-			'TEXT' => 'TEXT 2',
-			'ACTIVE' => 'Y'
+		return [
+			'ID' => (int) $element['ID'],
+			'DATE_MODIFY' => $element['DATE_MODIFY'] instanceof DateTime
+				? $element['DATE_MODIFY']->toString()
+				: '',
+			'TITLE' => (string) $element['TITLE'],
+			'TEXT' => (string) $element['TEXT'],
+			'ACTIVE' => $element['ACTIVE'] ? 'Y' : 'N',
 		];
-
-		return $element;
 	}
 
 	//Ajax
 	public function saveAction(array $data): AjaxJson
 	{
-		//Заглушка для отработки ajax
-		$element = [];
-		$isUdpateSuccess = true;
 		try
 		{
-			if ($isUdpateSuccess)
+			if ($this->hasErrors())
 			{
-				$element['ID'] = '1';
+				return AjaxJson::createError($this->errorCollection);
+			}
+
+			$fields = ['DATE_MODIFY' => new DateTime()];
+			if (array_key_exists('TITLE', $data))
+			{
+				$fields['TITLE'] = trim((string) $data['TITLE']);
+			}
+			if (array_key_exists('TEXT', $data))
+			{
+				$fields['TEXT'] = (string) $data['TEXT'];
+			}
+			if (array_key_exists('ACTIVE', $data))
+			{
+				$fields['ACTIVE'] = $data['ACTIVE'] === 'Y';
+			}
+
+			$isNew = !$this->elementId;
+			if ($isNew)
+			{
+				$fields['ACTIVE'] = $fields['ACTIVE'] ?? true;
+				$result = SomeElementTable::add($fields);
 			}
 			else
 			{
-				throw new SystemException(Loc::getMessage('EXAM31_ELEMENT_DETAIL_UPDATE_ERROR'));
+				if (!SomeElementTable::getByPrimary($this->elementId, ['select' => ['ID']])->fetch())
+				{
+					throw new SystemException(Loc::getMessage('EXAM31_ELEMENT_DETAIL_NOT_FOUND'));
+				}
+				$result = SomeElementTable::update($this->elementId, $fields);
 			}
 
-			return AjaxJson::createSuccess([
-				'ENTITY_ID' => $element['ID'],
+			if (!$result->isSuccess())
+			{
+				$this->errorCollection->add($result->getErrors());
+				return AjaxJson::createError($this->errorCollection);
+			}
+
+			$this->elementId = (int) $result->getId();
+
+			$response = [
+				'ENTITY_ID' => $this->elementId,
+				'ENTITY_DATA' => $this->getEntityData(),
+			];
+			if ($isNew)
+			{
 				//REDIRECT_URL необходим для корректной работы формы в слайдере
-				//'REDIRECT_URL' => $this->getDetailPageUrl($element['ID']),
-			]);
+				$response['REDIRECT_URL'] = $this->getDetailPageUrl($this->elementId);
+			}
+
+			return AjaxJson::createSuccess($response);
 		}
 		catch (SystemException $exception)
 		{

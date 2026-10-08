@@ -1,0 +1,2 @@
+<?php
+$MESS['EXAM31_ELEMENTS_SIDEPANEL_INFO_LABEL'] = 'Инфо';
