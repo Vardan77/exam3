@@ -13,6 +13,7 @@ $APPLICATION->IncludeComponent(
 		'SEF_URL_TEMPLATES' => [
 			'list' => '',
 			'detail' => 'detail/#ELEMENT_ID#/',
+			'info' => 'info/#ELEMENT_ID#/',
 		],
 		'DEFAULT_PAGE' => 'list'
 	]
