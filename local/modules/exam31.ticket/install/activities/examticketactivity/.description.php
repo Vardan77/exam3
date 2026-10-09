@@ -16,12 +16,24 @@ $arActivityDescription = [
 	"RETURN" => [
 		"ID" => [
 			"NAME" => Loc::getMessage("EXAM31_TICKET_ACTIVITY_RESULT_ID"),
-			"TYPE" => FieldType::INT,
-		],
-		"DEMO_VALUE" => [
-			"NAME" => Loc::getMessage("EXAM31_TICKET_ACTIVITY_RESULT_DEMO_VALUE"),
 			"TYPE" => FieldType::STRING,
-		],		
+		],
+		"ACTIVE" => [
+			"NAME" => Loc::getMessage("EXAM31_TICKET_ACTIVITY_RESULT_ACTIVE"),
+			"TYPE" => FieldType::STRING,
+		],
+		"DATE_MODIFY" => [
+			"NAME" => Loc::getMessage("EXAM31_TICKET_ACTIVITY_RESULT_DATE_MODIFY"),
+			"TYPE" => FieldType::STRING,
+		],
+		"TITLE" => [
+			"NAME" => Loc::getMessage("EXAM31_TICKET_ACTIVITY_RESULT_TITLE"),
+			"TYPE" => FieldType::STRING,
+		],
+		"TEXT" => [
+			"NAME" => Loc::getMessage("EXAM31_TICKET_ACTIVITY_RESULT_TEXT"),
+			"TYPE" => FieldType::STRING,
+		],
 	],
 ];
 

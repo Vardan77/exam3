@@ -6,10 +6,12 @@ use Bitrix\Bizproc\Activity\BaseActivity;
 use Bitrix\Bizproc\FieldType;
 use Bitrix\Main\ErrorCollection;
 use Bitrix\Bizproc\Activity\PropertiesDialog;
-use Bitrix\Main\Text\HtmlFilter;
+use Exam31\Ticket\SomeElementTable;
 
 class CBPExamTicketActivity extends BaseActivity
 {
+	protected static $requiredModules = ['exam31.ticket'];
+
 	public function __construct($name)
 	{
 		parent::__construct($name);
@@ -18,11 +20,17 @@ class CBPExamTicketActivity extends BaseActivity
 			'ID' => 0,
 
 			//return
-			'DEMO_VALUE' => null,
+			'ACTIVE' => null,
+			'DATE_MODIFY' => null,
+			'TITLE' => null,
+			'TEXT' => null,
 		];
 
 		$this->SetPropertiesTypes([
-			'DEMO_VALUE' => ['Type' => FieldType::STRING],
+			'ACTIVE' => ['Type' => FieldType::STRING],
+			'DATE_MODIFY' => ['Type' => FieldType::STRING],
+			'TITLE' => ['Type' => FieldType::STRING],
+			'TEXT' => ['Type' => FieldType::STRING],
 		]);
 
 	}
@@ -36,20 +44,44 @@ class CBPExamTicketActivity extends BaseActivity
 	{
 		$errors = parent::internalExecute();
 
-		/*
-		/Демо
-		*/
 		$elementId = (int) $this->preparedProperties["ID"];
-		if($elementId < 100)
+		$element = $elementId > 0
+			? SomeElementTable::getRow([
+				'select' => ['ID', 'ACTIVE', 'DATE_MODIFY', 'TITLE', 'TEXT'],
+				'filter' => ['=ID' => $elementId],
+			])
+			: null;
+
+		if($element)
 		{
-			//Значения найдены
-			$this->preparedProperties['DEMO_VALUE'] = HtmlFilter::encode('DEMO_VALUE');
+			//Значения найдены, отдаем их в виде строк
+			$this->setProperty('ID', (string) $element['ID']);
+			$this->setProperty(
+				'ACTIVE',
+				Loc::getMessage($element['ACTIVE'] ? 'EXAM31_TICKET_ACTIVITY_ACTIVE_Y' : 'EXAM31_TICKET_ACTIVITY_ACTIVE_N')
+			);
+			$this->setProperty('DATE_MODIFY', $element['DATE_MODIFY'] ? $element['DATE_MODIFY']->toString() : '');
+			$this->setProperty('TITLE', (string) $element['TITLE']);
+			$this->setProperty('TEXT', (string) $element['TEXT']);
+
+			//Пишем в журнал выполнения БП что данные получены
+			$this->log(
+				Loc::getMessage(
+					'EXAM31_TICKET_ACTIVITY_LOG_TEXT_Y',
+					[
+						'#ID#' => $elementId,
+					]
+				)
+			);
 		}
 		else
 		{
 			//Если нет данных, отдаем пустые значения
-			$this->preparedProperties['ID'] = 0;
-			$this->preparedProperties['DEMO_VALUE'] = '';
+			$this->setProperty('ID', '');
+			$this->setProperty('ACTIVE', '');
+			$this->setProperty('DATE_MODIFY', '');
+			$this->setProperty('TITLE', '');
+			$this->setProperty('TEXT', '');
 
 			//Пишем в журнал выполнения БП что данные не нашли
 			$this->log(
@@ -61,10 +93,7 @@ class CBPExamTicketActivity extends BaseActivity
 				)
 			);
 		}
-		/*
-		*
-		*/
-		
+
 		return $errors;
 	}
 
@@ -72,7 +101,7 @@ class CBPExamTicketActivity extends BaseActivity
 	{
 		$map = [
 			'ID' => [
-				'Name' => 'ID',
+				'Name' => Loc::getMessage('EXAM31_TICKET_ACTIVITY_FIELD_ID'),
 				'FieldName' => 'ID',
 				'Type' => FieldType::INT,
 				'Required' => true,
@@ -80,7 +109,7 @@ class CBPExamTicketActivity extends BaseActivity
 				'Options' => [],
 			],
 		];
-		
+
 		return $map;
 	}
 }

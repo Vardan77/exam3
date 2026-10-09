@@ -1,3 +1,7 @@
 <?if (!defined("B_PROLOG_INCLUDED") || B_PROLOG_INCLUDED!==true) die();
 $MESS['EXAM31_TICKET_ACTIVITY_ERROR_TEXT'] = 'Ошибка';
-$MESS['EXAM31_TICKET_ACTIVITY_LOG_TEXT_N'] = 'Данные для #ID# не получены';
+$MESS['EXAM31_TICKET_ACTIVITY_LOG_TEXT_Y'] = 'Элемент с ID #ID#: данные получены';
+$MESS['EXAM31_TICKET_ACTIVITY_LOG_TEXT_N'] = 'Элемент с ID #ID#: элемент не найден';
+$MESS['EXAM31_TICKET_ACTIVITY_ACTIVE_Y'] = 'Да';
+$MESS['EXAM31_TICKET_ACTIVITY_ACTIVE_N'] = 'Нет';
+$MESS['EXAM31_TICKET_ACTIVITY_FIELD_ID'] = 'ID элемента';
