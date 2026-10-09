@@ -11,5 +11,5 @@ foreach($arResult['value'] as $value)
 		print '<br>';
 	}
 	$isFirst = false;
-	print (!empty($value) ? $value : '');
+	print (!empty($value) ? (int) $value : '');
 }

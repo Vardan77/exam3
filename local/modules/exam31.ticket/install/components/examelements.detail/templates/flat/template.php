@@ -22,6 +22,6 @@ use Bitrix\Main\Diag\Debug;
 		<? endforeach; ?>
 	<? endif; ?>
 	<div class="ui-slider-content-box">
-		<p class="ui-slider-paragraph"><a href="<?= $arResult['LIST_PAGE_URL'] ?>"><?= Loc::getMessage('EXAM31_ELEMENT_DETAIL_BACK_TO_LIST') ?></a></p>
+		<p class="ui-slider-paragraph"><a href="<?= htmlspecialcharsbx($arResult['LIST_PAGE_URL']) ?>"><?= Loc::getMessage('EXAM31_ELEMENT_DETAIL_BACK_TO_LIST') ?></a></p>
 	</div>
 </div>

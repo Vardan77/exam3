@@ -9,6 +9,7 @@ use Bitrix\Main\Error;
 use Bitrix\Main\Errorable;
 use Bitrix\Main\ErrorCollection;
 use Bitrix\Main\ErrorableImplementation;
+use Bitrix\Main\Text\HtmlFilter;
 
 use Exam31\Ticket\SomeElementTable;
 
@@ -59,18 +60,24 @@ class ExamElementsDetailComponent extends CBitrixComponent implements Controller
 			return;
 		}
 
-		//flat
-		$this->arResult['ELEMENT'] = $this->getEntityData();
+		$entityData = $this->getEntityData();
 
-		if ($this->elementId && empty($this->arResult['ELEMENT']))
+		//flat - данные для прямого вывода в шаблоне, приводим к безопасному виду
+		$this->arResult['ELEMENT'] = array_map(
+			static fn($value) => HtmlFilter::encode((string) $value),
+			$entityData
+		);
+
+		if ($this->elementId && empty($entityData))
 		{
 			$APPLICATION->SetTitle(Loc::getMessage('EXAM31_ELEMENT_DETAIL_TITLE', ['#ID#' => $this->elementId]));
 			ShowError(Loc::getMessage('EXAM31_ELEMENT_DETAIL_NOT_FOUND'));
 			return;
 		}
 
-		//form
-		$this->arResult['form'] = $this->PrepareForm($this->arResult['ELEMENT']);
+		//form - сюда отдаем исходные значения: ui.form сам экранирует их при выводе,
+		//а в поля редактирования должны попасть данные без html-сущностей
+		$this->arResult['form'] = $this->PrepareForm($entityData);
 		$this->arResult['LIST_PAGE_URL'] = $this->arParams['LIST_PAGE_URL'];
 		$this->arResult['DETAIL_PAGE_URL'] = $this->arParams['DETAIL_PAGE_URL'];
 
