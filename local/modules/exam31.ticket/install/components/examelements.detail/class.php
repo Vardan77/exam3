@@ -9,7 +9,6 @@ use Bitrix\Main\Error;
 use Bitrix\Main\Errorable;
 use Bitrix\Main\ErrorCollection;
 use Bitrix\Main\ErrorableImplementation;
-use Bitrix\Main\Text\HtmlFilter;
 
 use Exam31\Ticket\SomeElementTable;
 
@@ -62,24 +61,8 @@ class ExamElementsDetailComponent extends CBitrixComponent implements Controller
 
 		$entityData = $this->getEntityData();
 
-		//flat - данные для прямого вывода в шаблоне, приводим к безопасному виду
-		$this->arResult['ELEMENT'] = array_map(
-			static fn($value) => HtmlFilter::encode((string) $value),
-			$entityData
-		);
-
-		if ($this->elementId && empty($entityData))
-		{
-			$APPLICATION->SetTitle(Loc::getMessage('EXAM31_ELEMENT_DETAIL_TITLE', ['#ID#' => $this->elementId]));
-			ShowError(Loc::getMessage('EXAM31_ELEMENT_DETAIL_NOT_FOUND'));
-			return;
-		}
-
-		//form - сюда отдаем исходные значения: ui.form сам экранирует их при выводе,
-		//а в поля редактирования должны попасть данные без html-сущностей
+		//Отдаем исходные значения: ui.form сам экранирует их при выводе
 		$this->arResult['form'] = $this->PrepareForm($entityData);
-		$this->arResult['LIST_PAGE_URL'] = $this->arParams['LIST_PAGE_URL'];
-		$this->arResult['DETAIL_PAGE_URL'] = $this->arParams['DETAIL_PAGE_URL'];
 
 		$this->includeComponentTemplate();
 
@@ -190,10 +173,10 @@ class ExamElementsDetailComponent extends CBitrixComponent implements Controller
 			return ['ACTIVE' => 'Y'];
 		}
 
-		$element = SomeElementTable::getRow([
-			'select' => ['ID', 'DATE_MODIFY', 'ACTIVE', 'TITLE', 'TEXT'],
-			'filter' => ['=ID' => $this->elementId],
-		]);
+		$element = SomeElementTable::query()
+			->addSelect('*')
+			->where('ID', $this->elementId)
+			->fetch();
 		if (!$element)
 		{
 			return [];
@@ -221,15 +204,15 @@ class ExamElementsDetailComponent extends CBitrixComponent implements Controller
 			}
 
 			$fields = ['DATE_MODIFY' => new DateTime()];
-			if (array_key_exists('TITLE', $data))
+			//ui.form присылает только те поля, которые были в режиме редактирования
+			foreach (['TITLE', 'TEXT'] as $name)
 			{
-				$fields['TITLE'] = trim((string) $data['TITLE']);
+				if (isset($data[$name]))
+				{
+					$fields[$name] = (string) $data[$name];
+				}
 			}
-			if (array_key_exists('TEXT', $data))
-			{
-				$fields['TEXT'] = (string) $data['TEXT'];
-			}
-			if (array_key_exists('ACTIVE', $data))
+			if (isset($data['ACTIVE']))
 			{
 				$fields['ACTIVE'] = $data['ACTIVE'] === 'Y';
 			}
@@ -237,15 +220,10 @@ class ExamElementsDetailComponent extends CBitrixComponent implements Controller
 			$isNew = !$this->elementId;
 			if ($isNew)
 			{
-				$fields['ACTIVE'] = $fields['ACTIVE'] ?? true;
-				$result = SomeElementTable::add($fields);
+				$result = SomeElementTable::add($fields + ['ACTIVE' => true]);
 			}
 			else
 			{
-				if (!SomeElementTable::getByPrimary($this->elementId, ['select' => ['ID']])->fetch())
-				{
-					throw new SystemException(Loc::getMessage('EXAM31_ELEMENT_DETAIL_NOT_FOUND'));
-				}
 				$result = SomeElementTable::update($this->elementId, $fields);
 			}
 

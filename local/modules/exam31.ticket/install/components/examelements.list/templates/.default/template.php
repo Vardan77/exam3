@@ -1,10 +1,5 @@
 <?php B_PROLOG_INCLUDED === true || die();
 
-use Bitrix\Main\Loader;
-use Bitrix\Main\Localization\Loc;
-use Bitrix\UI\Buttons\CreateButton;
-use Bitrix\UI\Toolbar\Facade\Toolbar;
-
 /**
  * @global CMain $APPLICATION
  * @var array $arParams
@@ -12,19 +7,6 @@ use Bitrix\UI\Toolbar\Facade\Toolbar;
  * @var CBitrixComponent $component
  */
 
-Loader::includeModule('ui');
-
-Toolbar::addFilter($arResult['filter']);
-Toolbar::addButton(
-	new CreateButton([
-		'text' => Loc::getMessage('EXAM_ELEMENTS_LIST_ADD_BUTTON'),
-		'link' => $arResult['ADD_PAGE_URL'],
-	])
-);
-?>
-
-
-<?
 $APPLICATION->IncludeComponent(
 	'bitrix:main.ui.grid',
 	'',

@@ -20,14 +20,12 @@ $rules = [
 	[
 		'condition' => [str_replace('#ELEMENT_ID#', '(\d+)', $arResult['DETAIL_PAGE_URL'])],
 		'options' => [
-			'width' => 900,
 			'cacheable' => false,
 		],
 	],
 	[
 		'condition' => [str_replace('#ELEMENT_ID#', '(\d+)', $arResult['INFO_PAGE_URL'])],
 		'options' => [
-			'width' => 700,
 			'cacheable' => false,
 			'label' => [
 				'text' => Loc::getMessage('EXAM31_ELEMENTS_SIDEPANEL_INFO_LABEL'),

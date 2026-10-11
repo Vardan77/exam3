@@ -2,9 +2,6 @@
 defined('B_PROLOG_INCLUDED') || die;
 
 use Bitrix\Main\Text\HtmlFilter;
-use Bitrix\Main\Web\Json;
-
-$sliderOptions = HtmlFilter::encode(Json::encode($arResult['SLIDER_OPTIONS']));
 ?>
 
 <span class="fields string field-wrap">
@@ -16,7 +13,7 @@ $sliderOptions = HtmlFilter::encode(Json::encode($arResult['SLIDER_OPTIONS']));
 			if ($item['LINK'] !== '')
 			{ ?>
 				<a href="<?= HtmlFilter::encode($item['LINK']) ?>"
-					onclick="BX.SidePanel.Instance.open(this.href, <?= $sliderOptions ?>); return false;"
+					onclick="BX.SidePanel.Instance.open(this.href); return false;"
 				><?= $item['FORMATTED_VALUE'] ?></a>
 				<?php
 			}

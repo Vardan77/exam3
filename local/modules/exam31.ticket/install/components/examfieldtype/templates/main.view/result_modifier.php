@@ -8,7 +8,6 @@ Extension::load('sidepanel');
 $component = $this->getComponent();
 $values = (array) ($arResult['value'] ?? []);
 
-$arResult['SLIDER_OPTIONS'] = $component->getSliderOptions();
 $arResult['PREPARED_VALUES'] = [];
 foreach($values as $key => $val)
 {

@@ -11,7 +11,7 @@ class ProtectedField
 
     public static function onBeforeCrmDealUpdate(array &$fields): bool
     {
-        if ($fields['UF_CRM_PROTECTED_FIELD']) {
+        if (array_key_exists(self::FIELD_NAME, $fields)) {
             if (!CurrentUser::get()->isAdmin()) {
                 $fields['RESULT_MESSAGE'] = Loc::getMessage('EXAM31_TICKET_PROTECTED_FIELD_ERROR');
                 return false;

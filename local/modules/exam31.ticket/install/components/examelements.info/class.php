@@ -2,7 +2,6 @@
 
 use Bitrix\Main\Loader;
 use Bitrix\Main\Localization\Loc;
-use Bitrix\Main\UI\Extension;
 use Exam31\Ticket\SomeElementInfoTable;
 
 class ExamElementsInfoComponent extends CBitrixComponent
@@ -22,8 +21,6 @@ class ExamElementsInfoComponent extends CBitrixComponent
             return;
         }
 
-        Extension::load('ui.sidepanel-content');
-
         $this->arResult['ELEMENTS'] = $this->getInfoElements();
         $this->includeComponentTemplate();
 
@@ -36,7 +33,6 @@ class ExamElementsInfoComponent extends CBitrixComponent
         return SomeElementInfoTable::query()
             ->setSelect(['ID', 'TITLE', 'ELEMENT_ID'])
             ->where('ELEMENT_ID', $this->arParams['ELEMENT_ID'])
-            ->setOrder(['ID' => 'ASC'])
             ->fetchAll();
     }
 }

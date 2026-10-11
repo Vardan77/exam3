@@ -16,7 +16,7 @@ $additionalParameters = $arResult['additionalParameters'];
     <td>
         <input
                 type="text"
-                name="<?= $additionalParameters['NAME']; ?>[FORMAT]"
+                name="<?= htmlspecialcharsbx($additionalParameters['NAME']); ?>[FORMAT]"
                 size="50"
                 maxlength="255"
                 value="<?= htmlspecialcharsbx($arResult['VALUES']['FORMAT']); ?>"
@@ -30,7 +30,7 @@ $additionalParameters = $arResult['additionalParameters'];
     <td>
         <input
                 type="text"
-                name="<?= $additionalParameters['NAME']; ?>[LINK_TEMPLATE]"
+                name="<?= htmlspecialcharsbx($additionalParameters['NAME']); ?>[LINK_TEMPLATE]"
                 size="50"
                 maxlength="255"
                 value="<?= htmlspecialcharsbx($arResult['VALUES']['LINK_TEMPLATE']); ?>"

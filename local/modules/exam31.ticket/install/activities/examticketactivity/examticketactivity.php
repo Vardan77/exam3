@@ -6,6 +6,7 @@ use Bitrix\Bizproc\Activity\BaseActivity;
 use Bitrix\Bizproc\FieldType;
 use Bitrix\Main\ErrorCollection;
 use Bitrix\Bizproc\Activity\PropertiesDialog;
+use Bitrix\Main\Text\HtmlFilter;
 use Exam31\Ticket\SomeElementTable;
 
 class CBPExamTicketActivity extends BaseActivity
@@ -45,24 +46,22 @@ class CBPExamTicketActivity extends BaseActivity
 		$errors = parent::internalExecute();
 
 		$elementId = (int) $this->preparedProperties["ID"];
-		$element = $elementId > 0
-			? SomeElementTable::getRow([
-				'select' => ['ID', 'ACTIVE', 'DATE_MODIFY', 'TITLE', 'TEXT'],
-				'filter' => ['=ID' => $elementId],
-			])
-			: null;
+		$element = SomeElementTable::query()
+			->setSelect(['ID', 'ACTIVE', 'DATE_MODIFY', 'TITLE', 'TEXT'])
+			->where('ID', $elementId)
+			->fetch();
 
 		if($element)
 		{
-			//Значения найдены, отдаем их в виде строк
+			//Значения найдены, отдаем их в виде строк. Данные сущности приводим к безопасному виду
 			$this->setProperty('ID', (string) $element['ID']);
 			$this->setProperty(
 				'ACTIVE',
 				Loc::getMessage($element['ACTIVE'] ? 'EXAM31_TICKET_ACTIVITY_ACTIVE_Y' : 'EXAM31_TICKET_ACTIVITY_ACTIVE_N')
 			);
 			$this->setProperty('DATE_MODIFY', $element['DATE_MODIFY'] ? $element['DATE_MODIFY']->toString() : '');
-			$this->setProperty('TITLE', (string) $element['TITLE']);
-			$this->setProperty('TEXT', (string) $element['TEXT']);
+			$this->setProperty('TITLE', HtmlFilter::encode((string) $element['TITLE']));
+			$this->setProperty('TEXT', HtmlFilter::encode((string) $element['TEXT']));
 
 			//Пишем в журнал выполнения БП что данные получены
 			$this->log(

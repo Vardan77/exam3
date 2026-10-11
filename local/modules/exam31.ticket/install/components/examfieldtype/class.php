@@ -24,21 +24,6 @@ class SomeElementFieldComponent extends BaseUfComponent
 		return ExamFieldType::USER_TYPE_ID;
 	}
 
-	public function getSliderOptions(): array
-	{
-		//Те же параметры, что и у слайдера информации в разделе /exam31/
-		return [
-			'width' => 700,
-			'cacheable' => false,
-			'label' => [
-				'text' => Loc::getMessage('EXAM31_TICKET_FIELDTYPE_SLIDER_LABEL'),
-				'color' => '#FFFFFF',
-				'bgColor' => '#7BD500',
-				'opacity' => 90,
-			],
-		];
-	}
-
 	public function prepareValue($value)
 	{
 		$preparedValue = [
@@ -49,10 +34,10 @@ class SomeElementFieldComponent extends BaseUfComponent
 		$element = null;
 		if ($preparedValue['VALUE'] > 0)
 		{
-			$element = SomeElementTable::getRow([
-				'select' => ['ID', 'TITLE'],
-				'filter' => ['=ID' => $preparedValue['VALUE']],
-			]);
+			$element = SomeElementTable::query()
+				->setSelect(['ID', 'TITLE'])
+				->where('ID', $preparedValue['VALUE'])
+				->fetch();
 		}
 
 		$settings = $this->arResult['userField']['SETTINGS'] ?? [];
