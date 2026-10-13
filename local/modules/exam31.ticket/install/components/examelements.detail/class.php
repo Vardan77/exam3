@@ -238,12 +238,9 @@ class ExamElementsDetailComponent extends CBitrixComponent implements Controller
 			$response = [
 				'ENTITY_ID' => $this->elementId,
 				'ENTITY_DATA' => $this->getEntityData(),
+				//После сохранения форма перезагружается в слайдере, и обертка обновляет грид (RELOAD_GRID_AFTER_SAVE)
+				'REDIRECT_URL' => $this->getDetailPageUrl($this->elementId),
 			];
-			if ($isNew)
-			{
-				//REDIRECT_URL необходим для корректной работы формы в слайдере
-				$response['REDIRECT_URL'] = $this->getDetailPageUrl($this->elementId);
-			}
 
 			return AjaxJson::createSuccess($response);
 		}

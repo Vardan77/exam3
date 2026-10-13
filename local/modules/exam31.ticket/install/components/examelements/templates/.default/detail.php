@@ -29,5 +29,7 @@ $APPLICATION->IncludeComponent(
 		'USE_PADDING' => true,
 		'PAGE_MODE' => false,
 		'PAGE_MODE_OFF_BACK_URL' => $arResult['LIST_PAGE_URL'],
+		//ID грида на странице списка
+		'RELOAD_GRID_AFTER_SAVE' => 'EXAM31_GRID_ELEMENT',
 	]
 );
