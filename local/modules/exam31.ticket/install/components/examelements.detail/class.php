@@ -61,7 +61,15 @@ class ExamElementsDetailComponent extends CBitrixComponent implements Controller
 
 		$entityData = $this->getEntityData();
 
-		//Отдаем исходные значения: ui.form сам экранирует их при выводе
+		if ($this->elementId && empty($entityData)) {
+			$this->errorCollection->setError(
+				new Error(Loc::getMessage('EXAM31_ELEMENT_DETAIL_NOT_FOUND', ['#ID#' => $this->elementId]))
+			);
+			$this->displayErrors();
+			$APPLICATION->SetTitle($this->getTitle());
+			return;
+		}
+
 		$this->arResult['form'] = $this->PrepareForm($entityData);
 
 		$this->includeComponentTemplate();
@@ -72,8 +80,8 @@ class ExamElementsDetailComponent extends CBitrixComponent implements Controller
 	protected function getTitle(): string
 	{
 		return $this->elementId
-			? Loc::getMessage('EXAM31_ELEMENT_DETAIL_TITLE', ['#ID#' => $this->elementId])
-			: Loc::getMessage('EXAM31_ELEMENT_DETAIL_TITLE_NEW');
+            ? Loc::getMessage('EXAM31_ELEMENT_DETAIL_TITLE', ['#ID#' => $this->elementId])
+            : Loc::getMessage('EXAM31_ELEMENT_DETAIL_TITLE_NEW');
 	}
 
 	protected function PrepareForm($element): array
@@ -128,69 +136,67 @@ class ExamElementsDetailComponent extends CBitrixComponent implements Controller
 
 	protected function getEntityFields(): array
 	{
+		$fields = SomeElementTable::getMap();
 		$fieldsLabel = SomeElementTable::getFieldsDisplayLabel();
+		$res = [];
 
-		return [
-			[
-				'name' => 'ID',
-				'title' => $fieldsLabel['ID'] ?? 'ID',
-				'editable' => false,
-				'type' => 'text',
-			],
-			[
-				'name' => 'DATE_MODIFY',
-				'title' => $fieldsLabel['DATE_MODIFY'] ?? 'DATE_MODIFY',
-				'editable' => false,
-				'type' => 'datetime',
-			],
-			[
-				'name' => 'ACTIVE',
-				'title' => $fieldsLabel['ACTIVE'] ?? 'ACTIVE',
+		foreach($fields as $field) {
+			$fieldName = $field->getTitle();
+
+			if(!$this->elementId && ($fieldName == 'ID' || $fieldName == 'DATE_MODIFY')) {
+				continue;
+			}
+
+			$fieldConfig = [
+				'name' => $fieldName,
+				'title' => $fieldsLabel[$fieldName] ?? $fieldName,
 				'editable' => true,
-				'type' => 'boolean',
-			],
-			[
-				'name' => 'TITLE',
-				'title' => $fieldsLabel['TITLE'] ?? 'TITLE',
-				'editable' => true,
-				'required' => true,
-				'type' => 'text',
-			],
-			[
-				'name' => 'TEXT',
-				'title' => $fieldsLabel['TEXT'] ?? 'TEXT',
-				'editable' => true,
-				'type' => 'textarea',
-			],
-		];
+				'type' => $this->getEntityType($field),
+			];
+
+			if($this->elementId && ($fieldName == 'ID' || $fieldName == 'DATE_MODIFY')) {
+				$fieldConfig['editable'] = false;
+			}
+
+			$res[] = $fieldConfig; 
+
+		}
+
+		return $res;
+	}
+
+	protected function getEntityType($field): string
+	{
+		$type = $field->getDataType();
+
+		return match ($type) {
+			'integer' => 'number',
+			'text' => 'textarea',
+			'boolean' => 'boolean',
+			'datetime' => 'datetime',
+			default => 'text',
+		};
 	}
 
 	protected function getEntityData(): array
 	{
 		if (!$this->elementId)
 		{
-			//Новый элемент по умолчанию активен
-			return ['ACTIVE' => 'Y'];
+			return [];
 		}
 
 		$element = SomeElementTable::query()
 			->addSelect('*')
 			->where('ID', $this->elementId)
 			->fetch();
-		if (!$element)
-		{
+
+		if(!$element) {
 			return [];
 		}
 
-		return [
-			'ID' => (int) $element['ID'],
-			'DATE_MODIFY' => $element['DATE_MODIFY'] instanceof DateTime
-				? $element['DATE_MODIFY']->toString()
-				: '',
-			'TITLE' => (string) $element['TITLE'],
-			'TEXT' => (string) $element['TEXT'],
-			'ACTIVE' => $element['ACTIVE'] ? 'Y' : 'N',
-		];
+		$element['ACTIVE'] = $element['ACTIVE'] ? 'Y' : 'N';
+
+		return $element;
 	}
 
 	//Ajax
@@ -198,51 +204,41 @@ class ExamElementsDetailComponent extends CBitrixComponent implements Controller
 	{
 		try
 		{
-			if ($this->hasErrors())
+            $fields['DATE_MODIFY'] = new DateTime();
+            if (isset($data['ACTIVE'])) {
+                $fields['ACTIVE'] = $data['ACTIVE'] === 'Y';
+            }
+
+            foreach (['TITLE', 'TEXT'] as $name) {
+                if (isset($data[$name])) {
+                    $fields[$name] = (string) $data[$name];
+                }
+            }
+
+			if ($this->elementId && empty($this->getEntityData()))
 			{
+				$this->errorCollection->setError(
+					new Error(Loc::getMessage('EXAM31_ELEMENT_DETAIL_NOT_FOUND', ['#ID#' => $this->elementId]))
+				);
 				return AjaxJson::createError($this->errorCollection);
 			}
 
-			$fields = ['DATE_MODIFY' => new DateTime()];
-			//ui.form присылает только те поля, которые были в режиме редактирования
-			foreach (['TITLE', 'TEXT'] as $name)
-			{
-				if (isset($data[$name]))
-				{
-					$fields[$name] = (string) $data[$name];
-				}
-			}
-			if (isset($data['ACTIVE']))
-			{
-				$fields['ACTIVE'] = $data['ACTIVE'] === 'Y';
-			}
-
-			$isNew = !$this->elementId;
-			if ($isNew)
-			{
-				$result = SomeElementTable::add($fields + ['ACTIVE' => true]);
-			}
-			else
-			{
+			if(!$this->elementId) {
+				$result = SomeElementTable::add($fields);
+			} else {
 				$result = SomeElementTable::update($this->elementId, $fields);
 			}
 
-			if (!$result->isSuccess())
-			{
-				$this->errorCollection->add($result->getErrors());
-				return AjaxJson::createError($this->errorCollection);
+			if (!$result->isSuccess()) {
+                $this->errorCollection->add($result->getErrors());
+                return AjaxJson::createError($this->errorCollection);
 			}
 
-			$this->elementId = (int) $result->getId();
-
-			$response = [
-				'ENTITY_ID' => $this->elementId,
+			return AjaxJson::createSuccess([
+				'ENTITY_ID' => $result->getId(),
 				'ENTITY_DATA' => $this->getEntityData(),
-				//После сохранения форма перезагружается в слайдере, и обертка обновляет грид (RELOAD_GRID_AFTER_SAVE)
-				'REDIRECT_URL' => $this->getDetailPageUrl($this->elementId),
-			];
-
-			return AjaxJson::createSuccess($response);
+				'REDIRECT_URL' => $this->getDetailPageUrl($result->getId()),
+			]);
 		}
 		catch (SystemException $exception)
 		{

@@ -13,13 +13,18 @@ Extension::load('ui.sidepanel-content');
 ?>
 
 <div class="ui-slider-section">
-    <div class="ui-slider-content-box">
+	<div class="ui-slider-content-box">
         <div class="ui-slider-heading-2"><?= Loc::getMessage('EXAM31_ELEMENT_INFO_PAGE_TITLE') ?></div>
-    </div>
-        <?php foreach ($arResult['ELEMENTS'] as $element): ?>
-            <div class="ui-slider-frame --no-hover">
+		</div>
+    <?php if (empty($arResult['ELEMENTS'])): ?>
+        <p class="ui-slider-paragraph-2"><?= Loc::getMessage('EXAM31_ELEMENT_INFO_EMPTY') ?></p>
+    <?php endif; ?>
+    <?php
+    foreach ($arResult['ELEMENTS'] as $element): ?>
+        <div class="ui-slider-frame --no-hover">
                 <div class="ui-slider-heading-3"><?= (int) $element['ID'] ?></div>
                 <p class="ui-slider-paragraph-2"><?= HtmlFilter::encode($element['TITLE']) ?></p>
-            </div>
-        <?php endforeach; ?>
+                <p class="ui-slider-paragraph-2"><?= Loc::getMessage('EXAM31_ELEMENT_INFO_FIELD_ELEMENT_ID') ?>: <?= (int) $element['ELEMENT_ID'] ?></p>
+        </div>
+    <?php endforeach; ?>
 </div>

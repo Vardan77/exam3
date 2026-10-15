@@ -17,11 +17,11 @@ class SomeElementTable extends Entity\DataManager
 			(new Entity\IntegerField('ID'))
 				->configurePrimary()
 				->configureAutocomplete(),
-			(new Entity\BooleanField('ACTIVE'))
-				->configureRequired(),
 			(new Entity\DatetimeField('DATE_MODIFY'))
 				->configureRequired()
 				->configureDefaultValue(new DateTime()),
+			(new Entity\BooleanField('ACTIVE'))
+				->configureRequired(),
 			(new Entity\StringField('TITLE'))
 				->configureRequired()
                 ->configureSize(250),

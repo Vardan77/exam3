@@ -12,10 +12,7 @@ use Bitrix\Main\Web\Json;
  * @var array $arResult
  */
 
-Loc::loadMessages(__FILE__);
 Extension::load('sidepanel');
-
-//Правила открытия страниц в слайдере
 $rules = [
 	[
 		'condition' => [str_replace('#ELEMENT_ID#', '(\d+)', $arResult['DETAIL_PAGE_URL'])],
@@ -37,6 +34,7 @@ $rules = [
 	],
 ];
 ?>
+
 <script>
 	BX.ready(function () {
 		BX.SidePanel.Instance.bindAnchors({rules: <?= Json::encode($rules) ?>});

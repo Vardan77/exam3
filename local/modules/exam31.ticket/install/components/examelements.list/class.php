@@ -4,23 +4,25 @@ use Bitrix\Main\Localization\Loc;
 use Bitrix\Main\Loader;
 use Bitrix\Main\Type\DateTime;
 use Bitrix\Main\Text\HtmlFilter;
-use Bitrix\Main\UI\Filter\Options as FilterOptions;
+
+use Bitrix\Main\ORM\Fields\ExpressionField;
+use Bitrix\Main\UI\Filter\Options;
 use Bitrix\Main\UI\PageNavigation;
+use Bitrix\UI\Toolbar\Facade\Toolbar;
+use Bitrix\UI\Buttons;
 
 use Bitrix\Main\Error;
 use Bitrix\Main\Errorable;
 use Bitrix\Main\ErrorCollection;
 use Bitrix\Main\ErrorableImplementation;
 
-use Bitrix\UI\Buttons\AddButton;
-use Bitrix\UI\Buttons\JsCode;
-use Bitrix\UI\Toolbar\Facade\Toolbar;
 use Exam31\Ticket\SomeElementTable;
 use Exam31\Ticket\SomeElementInfoTable;
 
 class ExamElementsListComponent extends CBitrixComponent implements Errorable
 {
 	use ErrorableImplementation;
+	protected const DEFAULT_PAGE_SIZE = 20;
 	protected const GRID_ID = 'EXAM31_GRID_ELEMENT';
 	protected const FILTER_ID = 'EXAM31_GRID_ELEMENT_FILTER';
 	protected const PAGINATION_ID = 'EXAM31_GRID_ELEMENT_PAGINATION';
@@ -41,6 +43,10 @@ class ExamElementsListComponent extends CBitrixComponent implements Errorable
 			return $arParams;
 		}
 
+		$arParams['ELEMENT_COUNT'] = (int) $arParams['ELEMENT_COUNT'] ?? 0;
+		if ($arParams['ELEMENT_COUNT'] <= 0) {
+			$arParams['ELEMENT_COUNT'] = static::DEFAULT_PAGE_SIZE;
+		}
 		return $arParams;
 	}
 
@@ -64,8 +70,6 @@ class ExamElementsListComponent extends CBitrixComponent implements Errorable
         $this->arResult['ITEMS'] = $this->getSomeElementList();
 		$this->arResult['grid'] = $this->prepareGrid($this->arResult['ITEMS']);
 		$this->arResult['filter'] = $this->prepareFilter();
-		$this->arResult['GRID_ID'] = static::GRID_ID;
-		$this->arResult['ADD_PAGE_URL'] = $this->getDetailPageUrl(0);
 
 		$this->prepareToolbar();
 		$this->includeComponentTemplate();
@@ -76,32 +80,31 @@ class ExamElementsListComponent extends CBitrixComponent implements Errorable
 
 	protected function getSomeElementList(): array
 	{
-        $filterOptions = new FilterOptions(self::FILTER_ID);
-        $filter = $filterOptions->getFilter();
-        //Строка поиска тоже ищет по TITLE
-        $titleFilter = ($filter['TITLE'] ?? '') ?: ($filter['FIND'] ?? '');
+		$filterOptopns = new Options(self::FILTER_ID);
+		$titleFilter = $filterOptopns->getFilter()['TITLE'] ?? '';
 
-        $query = SomeElementTable::query()
-            ->addSelect('*')
-            ->whereLike('TITLE', '%' . $titleFilter . '%');
+		$query = SomeElementTable::query()
+			->addSelect('*')
+			->whereLike('TITLE', '%' . $titleFilter . '%');
 
 		$totalCount = $query->queryCountTotal();
 
 		$items = $query
-			->setOrder(['ID' => 'ASC'])
+            ->addOrder('ID')
 			->setLimit($this->arResult['PAGINATION']->getLimit())
 			->setOffset($this->arResult['PAGINATION']->getOffset())
 			->fetchAll();
 
         $this->arResult['PAGINATION']->setRecordCount($totalCount);
-        $infoCount = $this->getInfoCount();
+        $infoCount = $this->getInfoCount(array_column($items, 'ID'));
 
 		$preparedItems = [];
-		foreach ($items as $item)
-		{
+		foreach ($items as $item) {
+			$active = $item['ACTIVE'] ? 'YES' : 'NO';
 			$item['DETAIL_URL'] = $this->getDetailPageUrl($item['ID']);
 			$item['INFO_URL'] = $this->getInfoPageUrl($item['ID']);
 			$item['INFO_COUNT'] = $infoCount[$item['ID']] ?? 0;
+			$item['ACTIVE'] = Loc::getMessage('EXAM31_ELEMENTS_LIST_ELEMENT_ACTIVE_' . $active);
 			$item['DATE_MODIFY'] = $item['DATE_MODIFY'] instanceof DateTime
 				? $item['DATE_MODIFY']->toString()
 				: null;
@@ -111,38 +114,21 @@ class ExamElementsListComponent extends CBitrixComponent implements Errorable
 		return $preparedItems;
 	}
 
-	protected function getInfoCount(): array
+	protected function getInfoCount(array $elementIds): array
 	{
-        $infoElements = SomeElementInfoTable::query()
-            ->addSelect('*')
-            ->fetchAll();
+		if (empty($elementIds)) {
+			return [];
+		}
 
-        $infoElements = array_column($infoElements, 'ELEMENT_ID');
-        return array_count_values($infoElements);
-	}
+		$rows = SomeElementInfoTable::query()
+			->registerRuntimeField('INFO_COUNT', new ExpressionField('INFO_COUNT', 'COUNT(%s)', 'ID'))
+			->addSelect('ELEMENT_ID')
+			->addSelect('INFO_COUNT')
+			->whereIn('ELEMENT_ID', $elementIds)
+			->addGroup('ELEMENT_ID')
+			->fetchAll();
 
-    protected function preparePagination(): PageNavigation
-    {
-        $pagination = new PageNavigation(static::PAGINATION_ID);
-        $pagination->initFromUri();
-
-        return $pagination;
-    }
-
-	protected function prepareFilter(): array
-	{
-        $fieldsLabel = SomeElementTable::getFieldsDisplayLabel();
-
-		return [
-			'FILTER_ID' => static::FILTER_ID,
-			'GRID_ID' => static::GRID_ID,
-			'FILTER' => [
-                [
-                    'id' => 'TITLE',
-                    'name' => $fieldsLabel['TITLE'] ?? 'TITLE',
-                ]
-            ]
-		];
+		return array_column($rows, 'INFO_COUNT', 'ELEMENT_ID');
 	}
 
 	protected function prepareGrid($items): array
@@ -158,14 +144,6 @@ class ExamElementsListComponent extends CBitrixComponent implements Errorable
             'NAV_OBJECT' => $this->arResult['PAGINATION'],
 		];
 	}
-
-    protected function prepareToolbar(): void
-    {
-        Toolbar::addFilter($this->arResult['filter']);
-        Toolbar::addButton(new AddButton([
-            'click' => new JsCode($this->getOpenSliderJs($this->arResult['ADD_PAGE_URL'])),
-        ]));
-    }
 
 	protected function getGridColums(): array
 	{
@@ -193,32 +171,24 @@ class ExamElementsListComponent extends CBitrixComponent implements Errorable
 			$rows[$key] = [
 				'id' => $item["ID"],
 				'columns' => [
-					'ID' => (int) $item["ID"],
-					'DATE_MODIFY' => HtmlFilter::encode((string) $item["DATE_MODIFY"]),
-					'TITLE' => HtmlFilter::encode((string) $item["TITLE"]),
-					'TEXT' => HtmlFilter::encode((string) $item["TEXT"]),
-					'ACTIVE' => $item["ACTIVE"]
-						? Loc::getMessage('EXAM31_ELEMENTS_LIST_ACTIVE_Y')
-						: Loc::getMessage('EXAM31_ELEMENTS_LIST_ACTIVE_N'),
-					'DETAIL' => $this->getHTMLLink(
-						$item["DETAIL_URL"],
-						Loc::getMessage('EXAM31_ELEMENTS_LIST_GRIG_COLUMN_DETAIL_NAME')
-					),
-					'INFO' => $this->getHTMLLink(
-						$item["INFO_URL"],
-						Loc::getMessage('EXAM31_ELEMENTS_LIST_GRIG_COLUMN_INFO_VALUE', ['#COUNT#' => $item["INFO_COUNT"]])
-					),
+					'ID' => $item["ID"],
+					'DATE_MODIFY' => $item["DATE_MODIFY"],
+					'TITLE' => HtmlFilter::encode($item["TITLE"]),
+					'TEXT' => HtmlFilter::encode($item["TEXT"]),
+					'ACTIVE' => $item["ACTIVE"],
+					'DETAIL' => $this->getDetailHTMLLink($item["DETAIL_URL"]),
+					'INFO' => $this->getInfoHTMLLink($item),
 				],
 				'actions' => [
 					[
-						'text' => Loc::getMessage('EXAM31_ELEMENTS_LIST_ACTION_DETAIL'),
-						'onclick' => $this->getOpenSliderJs($item['DETAIL_URL']),
+						'text' => Loc::getMessage('EXAM31_ELEMENTS_LIST_GRIG_COLUMN_DETAIL_NAME'),
+						'onclick' => $this->getSliderJs($item['DETAIL_URL']),
 					],
 					[
-						'text' => Loc::getMessage('EXAM31_ELEMENTS_LIST_ACTION_INFO'),
-                        'onclick' => $this->getOpenSliderJs($item['INFO_URL']),
+						'text' => Loc::getMessage('EXAM31_ELEMENTS_LIST_GRIG_COLUMN_INFO_NAME'),
+						'onclick' => $this->getSliderJs($item['INFO_URL']),
 					],
-				],
+				]
 			];
 		}
 		return $rows;
@@ -228,16 +198,57 @@ class ExamElementsListComponent extends CBitrixComponent implements Errorable
 	{
 		return str_replace('#ELEMENT_ID#', $id, $this->arParams['DETAIL_PAGE_URL']);
 	}
+
 	protected function getInfoPageUrl(int $id): string
 	{
 		return str_replace('#ELEMENT_ID#', $id, $this->arParams['INFO_PAGE_URL']);
 	}
-	protected function getHTMLLink(string $url, string $text): string
+
+	protected function getDetailHTMLLink(string $detail_url): string
 	{
-		return "<a href=\"" . HtmlFilter::encode($url) . "\">" . HtmlFilter::encode($text) . "</a>";
+		return "<a href=\"" . $detail_url . "\">" . Loc::getMessage('EXAM31_ELEMENTS_LIST_GRIG_COLUMN_DETAIL_NAME') . "</a>";
 	}
-	protected function getOpenSliderJs(string $url): string
+
+	protected function getInfoHTMLLink(array $item): string
 	{
-		return "BX.SidePanel.Instance.open('" . CUtil::JSEscape($url) . "')";
+		return "<a href=\"" . $item['INFO_URL'] . "\">" . Loc::getMessage('EXAM31_ELEMENTS_LIST_INFO_URL_TITLE', ['#COUNT#' => $item['INFO_COUNT']]) . "</a>";
+	}
+
+	protected function preparePagination(): PageNavigation
+	{
+
+		$pageNavigation = new PageNavigation(static::PAGINATION_ID);
+		$pageNavigation->setPageSize($this->arParams['ELEMENT_COUNT'])->initFromUri();
+
+		return $pageNavigation;
+	}
+
+	protected function prepareFilter(): array
+	{
+		$fieldsLabel = SomeElementTable::getFieldsDisplayLabel();
+
+		return [
+			'FILTER_ID' => self::FILTER_ID,
+			'GRID_ID' => self::GRID_ID,
+			'FILTER' => [
+				[
+					'id' => 'TITLE',
+					'name' => $fieldsLabel['TITLE'] ?? 'TITLE',
+				]
+			],
+		];
+	}
+
+	protected function prepareToolbar(): void
+	{
+		Toolbar::addFilter($this->arResult['filter']);
+		Toolbar::addButton(new Buttons\Addbutton([
+			'click' => new Buttons\JsCode($this->getSliderJs($this->getDetailPageUrl(0)))
+		]));
+	}
+
+	protected function getSliderJs($url): string
+	{
+        return "BX.SidePanel.Instance.open('" . CUtil::JSEscape($url) . "')";
 	}
 }

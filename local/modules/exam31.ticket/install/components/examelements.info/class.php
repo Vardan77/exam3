@@ -15,8 +15,7 @@ class ExamElementsInfoComponent extends CBitrixComponent
 
     function executeComponent(): void
     {
-        if (!Loader::includeModule('exam31.ticket'))
-        {
+        if (!Loader::includeModule('exam31.ticket')) {
             ShowError(Loc::getMessage('EXAM31_TICKET_MODULE_NOT_INSTALLED'));
             return;
         }
@@ -31,7 +30,7 @@ class ExamElementsInfoComponent extends CBitrixComponent
     private function getInfoElements(): array
     {
         return SomeElementInfoTable::query()
-            ->setSelect(['ID', 'TITLE', 'ELEMENT_ID'])
+            ->addSelect('*')
             ->where('ELEMENT_ID', $this->arParams['ELEMENT_ID'])
             ->fetchAll();
     }
